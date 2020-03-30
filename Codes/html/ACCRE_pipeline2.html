@@ -1,0 +1,722 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>ACCRE_pipeline2</title><meta name="generator" content="MATLAB 9.5"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2020-03-29"><meta name="DC.source" content="ACCRE_pipeline2.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#7">bet on norm: bet doesn't work if there is .nii file of the same .gz</a></li><li><a href="#8">bet</a></li><li><a href="#9">Checking fslreorient2std</a></li><li><a href="#11">trial on bet</a></li><li><a href="#12">betsurf</a></li><li><a href="#13">bet on binary mask</a></li><li><a href="#14">creating seg label</a></li><li><a href="#15">all about masks</a></li><li><a href="#16">ct_bet_master</a></li><li><a href="#17">Check FSL fast on ct_bet</a></li><li><a href="#18">after FAST</a></li><li><a href="#19">Check if the previous MAS and current MAS has same/similar labels</a></li><li><a href="#20">Regiongrowing</a></li><li><a href="#21">The main code here</a></li><li><a href="#22">check the pipeline</a></li><li><a href="#24">region growing on MR norm head</a></li><li><a href="#25">accelerated eyeball</a></li></ul></div><pre class="codeinput">close <span class="string">all</span>;
+clear <span class="string">all</span>;
+addpath(<span class="string">'/home/banikr2/MATLAB/MatlabProjects/MRCTRegSeg/Codes'</span>, <span class="string">'/media/banikr2/DATA/emModels/test'</span>, <span class="keyword">...</span>
+    <span class="string">'/media/banikr2/DATA/emModels/TwentySubjectAll/5767'</span>);
+rootDir = <span class="string">'/media/banikr2/DATA/emModels/test/'</span>;
+ls = dir(rootDir); ls = ls(3:end);
+ls.name;
+</pre><pre class="codeinput"><span class="keyword">for</span> nSub = 1:length(ls) <span class="comment">%number of subjects</span>
+    subID = ls(nSub).name;
+    display([<span class="string">'Subject '</span> num2str(nSub) <span class="string">': '</span> subID]);
+    cd([rootDir subID]);
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">Subject 1: .~lock.fslreorient2std.docx#
+</pre><pre class="codeoutput error">Error using cd
+Cannot CD to /media/banikr2/DATA/emModels/test/.~lock.fslreorient2std.docx# (Name is nonexistent or not a directory).
+Error in ACCRE_pipeline2 (line 12)
+    cd([rootDir subID]);  </pre><pre class="codeinput">nii = load_untouch_nii_gz([subID <span class="string">'_CT.nii.gz'</span>]); ct = nii.img; <span class="comment">%CT file</span>
+<span class="comment">% nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm_seg.nii.gz']); msk = nii.img; %</span>
+</pre><pre class="codeinput">cmd =[<span class="string">'flirt'</span><span class="keyword">...</span>
+<span class="string">' -in /media/banikr/DATA/emModels/test/271_MR_bet_norm.nii.gz'</span> <span class="keyword">...</span><span class="comment"> %input or moving image: CT</span>
+<span class="string">' -ref /media/banikr/DATA/emModels/test/271/271_MR.nii.gz'</span><span class="keyword">...</span><span class="comment"> %ref or fixed image: MR</span>
+<span class="string">' -out /media/banikr/DATA/emModels/test/271_MR_bet2.nii.gz'</span><span class="keyword">...</span><span class="comment"> %output native CT registered on native MR</span>
+<span class="string">' -omat /media/banikr/DATA/emModels/test/271_MR_bet2.mat'</span><span class="keyword">...</span><span class="comment"> % 4x4 affine transformation matrix(ascii format)</span>
+<span class="string">' -bins 256'</span><span class="keyword">...</span>
+<span class="string">' -cost normmi'</span><span class="keyword">...</span>
+<span class="string">' -searchrx -90 90'</span><span class="keyword">...</span><span class="comment"> %search angle -90 90</span>
+<span class="string">' -searchry -90 90'</span><span class="keyword">...</span>
+<span class="string">' -searchrz -90 90'</span><span class="keyword">...</span>
+<span class="string">' -dof 12'</span><span class="keyword">...</span><span class="comment"> %3 rotation, 3 translation, 3 shear, 3 scale</span>
+<span class="string">' -interp trilinear'</span>];
+system(cmd)
+</pre><pre class="codeinput">Data = load(<span class="string">'CT-MRI-273_MR_TO_MR_norm_0.mat'</span>,<span class="string">'-ASCII'</span>);
+</pre><pre class="codeinput">nii = load_untouch_nii_gz([<span class="string">'CT-MRI-'</span> subID <span class="string">'_CT_norm.nii.gz'</span>]); ct = nii.img; <span class="comment">%CT file  %%%%%%%%CT_on_MR</span>
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-'</span> subID <span class="string">'_MR_norm_seg.nii.gz'</span>]); msk = nii.img; <span class="comment">%</span>
+ring = imdilate(msk==1, strel(<span class="string">'sphere'</span>, 2))-imerode(msk==1, strel(<span class="string">'sphere'</span>, 2));
+ring(ring&gt;0&amp;ct&gt;200) = 2; msk(ring&gt;0) = ring(ring&gt;0);
+stat = regionprops(msk==1, <span class="string">'Area'</span>, <span class="string">'PixelIdxList'</span>);
+<span class="keyword">for</span> ii=1:length(stat)
+    <span class="keyword">if</span> stat(ii).Area&gt;10000; <span class="keyword">continue</span>; <span class="keyword">end</span>;
+    msk(stat(ii).PixelIdxList) = 2;
+<span class="keyword">end</span>
+nii.img = msk;
+save_untouch_nii_gz(nii, [<span class="string">'CT-MRI-'</span> subID <span class="string">'_MR_norm_seg1.nii.gz'</span>]);
+<span class="comment">% Manual correct mask on bottom spinal part</span>
+<span class="comment">% Brain extraction</span>
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-'</span> subID <span class="string">'_MR_norm_seg2.nii.gz'</span>]); mask = nii.img==1;
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-'</span> subID <span class="string">'_MR_norm.nii.gz'</span>]); mr = nii.img;
+mr(mask==0) = 0; mr(mr&lt;0)=0.5;
+nii.img = mr;
+save_untouch_nii_gz(nii, [<span class="string">'CT-MRI-'</span> subID <span class="string">'_MR_norm_brain.nii.gz'</span>]);
+</pre><h2 id="7">bet on norm: bet doesn't work if there is .nii file of the same .gz</h2><pre class="codeinput">cmd = [<span class="string">'bet /media/banikr/DATA/emModels/TwentySubjectAll/5767/CT-MRI-5767_MR_norm.nii.gz /media/banikr/DATA/emModels/test/CT-MRI-5767_MR_norm_robust_smallf_ng.nii.gz -m -n -f 0.15 -R -S -t'</span>];
+system(cmd)
+<span class="comment">% if head segmentation required CT -&gt; best result.</span>
+<span class="comment">% -f 0.2259 on CT both norm and native gets the entire head.</span>
+<span class="comment">% https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET/UserGuide</span>
+<span class="comment">% https://fsl.fmrib.ox.ac.uk/fslcourse/lectures/practicals/intro2/index.html#bet_optional</span>
+<span class="comment">% bet doesn't perform as the CT-MRI-273_MR_norm_seg</span>
+<span class="comment">% nii = load_untouch_nii_gz('/media/banikr/DATA/emModels/test/CT-MRI-5767_CT_norm_robust_smallf_ng_mask.nii.gz');</span>
+<span class="comment">% volumeViewer(nii.img)</span>
+</pre><h2 id="8">bet</h2><pre class="codeinput">cmd = [<span class="string">'bet /media/banikr/DATA/emModels/TwentySubjectAll/5767/CT-MRI-5767_MR_norm_seg.nii.gz /media/banikr/DATA/emModels/TwentySubjectAll/5767_seg_mask_bet.nii.gz -m -f 0.15 -R'</span>];
+system(cmd)
+</pre><h2 id="9">Checking fslreorient2std</h2><pre class="codeinput">cmd = [<span class="string">'fslreorient2std /media/banikr/DATA/emModels/test/271_MR_bet.nii.gz /media/banikr/DATA/emModels/test/271_MR_bet.nii.gz'</span>]; <span class="comment">%have to write twice for some strange syntax</span>
+system(cmd)
+cmd = [<span class="string">'fslreorient2std /media/banikr/DATA/emModels/test/271/271_MR.nii.gz /media/banikr/DATA/emModels/test/271/271_MR.nii.gz'</span>];
+system(cmd)
+</pre><p>Correct brain mask subID = '5767' nii = load_untouch_nii_gz(['CT-MRI-' subID '_CT_norm.nii.gz']); ct = nii.img; % CT file  %CT_on_MR nii = load_untouch_nii_gz(['CT-MRI-',subID,'_MR_norm_seg.nii.gz']); msk = nii.img; % ring = imdilate(msk==1, strel('sphere', 2))-imerode(msk==1, strel('sphere', 2)); ring(ring&gt;0&amp;ct&gt;200) = 2; msk(ring&gt;0) = ring(ring&gt;0); stat = regionprops(msk==1, 'Area', 'PixelIdxList'); for ii=1:length(stat)     if stat(ii).Area&gt;10000; continue;     end;     msk(stat(ii).PixelIdxList) = 2; end nii.img = msk; save_untouch_nii_gz(nii, ['CT-MRI-' subID '_MR_norm_seg1.nii.gz']);</p><h2 id="11">trial on bet</h2><pre class="codeinput">subID = <span class="string">'5767'</span>
+nii = load_untouch_nii_gz([subID <span class="string">'_MR_norm_bet_mask.nii.gz'</span>]);
+mrBetMask = nii.img;
+<span class="comment">% 271_norm_CT.nii.gz</span>
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-'</span> subID <span class="string">'_CT_norm.nii.gz'</span>]);
+ct = nii.img;
+dilatedBrain = imdilate(mrBetMask, strel(<span class="string">'sphere'</span>, 2));
+erodedBrain = imerode(mrBetMask, strel(<span class="string">'sphere'</span>, 2));
+brainResidue = dilatedBrain - erodedBrain; <span class="comment">% &gt;&gt; is the ring</span>
+
+brainResidue(brainResidue&gt;0&amp;ct&gt;200) = 2; <span class="comment">% &gt;&gt; ct &gt; 200 is bones/skull and ring&gt;0 is only 1; 2 means skull?</span>
+mrBetMask(brainResidue&gt;0) = brainResidue(brainResidue&gt;0); <span class="comment">% similar as before!</span>
+
+stat = regionprops(mrBetMask==1, <span class="string">'Area'</span>, <span class="string">'PixelIdxList'</span>);
+<span class="keyword">for</span> ii=1:length(stat)
+    <span class="keyword">if</span> stat(ii).Area&gt;10000;
+        <span class="keyword">continue</span>;
+    <span class="keyword">end</span>;
+    mrBetMask(stat(ii).PixelIdxList) = 2; <span class="comment">% &gt;&gt; enriching skull/bone values</span>
+<span class="keyword">end</span>
+<span class="comment">% nii.img = mask012; % &gt;&gt;detailed skull mask012</span>
+</pre><h2 id="12">betsurf</h2><h2 id="13">bet on binary mask</h2><pre class="codeinput">cmd = [<span class="string">'bet /media/banikr/DATA/emModels/test/CT-MRI-5767_brainCT.nii.gz /media/banikr/DATA/emModels/test/CT-MRI-5767_brainCT.nii.gz -m -f 0.15'</span>];
+system(cmd)
+</pre><h2 id="14">creating seg label</h2><pre class="codeinput">subID = <span class="string">'5767'</span>;
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-'</span> subID <span class="string">'_CT_norm.nii.gz'</span>]);
+ct = nii.img;
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-'</span> subID <span class="string">'_MR_norm.nii.gz'</span>]);
+mr = nii.img;
+mr(mr&lt;0)=0.5;
+sz = size(ct);
+seg012 = zeros(sz);
+seg012(ct&gt;0 &amp; ct&lt;81)=1; <span class="comment">% CSF, WM, GM, Acute blood</span>
+seg012(mr == 0) = 0;
+seg012(ct&gt;190) = 2;
+msk = imdilate(seg012==1, strel(<span class="string">'sphere'</span>,2));
+<span class="comment">% volumeViewer(seg012)</span>
+<span class="comment">% for i = 1:156</span>
+<span class="comment">% seg012 = regionfill(seg012==1);</span>
+<span class="comment">% end</span>
+volumeViewer(seg012)
+<span class="comment">% seg012 = imdilate(seg012==1, strel('sphere',2));</span>
+<span class="comment">% volumeViewer(seg012)</span>
+<span class="comment">% nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm_seg2.nii.gz']); mask = nii.img;%==1;  %% Do not have this segmentation also</span>
+<span class="comment">% volumeViewer(mask)</span>
+</pre><h2 id="15">all about masks</h2><pre class="codeinput">subID = <span class="string">'5767'</span>;
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-'</span> subID <span class="string">'_CT_norm.nii.gz'</span>]);
+ct = nii.img;
+sz = size(ct);
+<span class="comment">% csf + wm + gm</span>
+brainCT = zeros(sz);
+brainCT(ct&gt;-1&amp;ct&lt;81)=1;
+volumeViewer(brainCT)
+<span class="comment">% only csf</span>
+csf = zeros(sz);
+csf(ct&gt;-1&amp;ct&lt;11)=1;
+volumeViewer(csf)
+csf(ct&gt;-1&amp;ct&lt;11)=1;
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-5767_CT_norm_robust_smallf_ng_mask.nii.gz'</span>]);
+skullmask = nii.img;
+ct(skullmask==0) = 0;
+<span class="comment">% skullCTmask(skullmask==1) = ct;</span>
+volumeViewer(ct)
+nii.img = ct;
+<span class="comment">% save_untouch_nii_gz(nii, ['CT-MRI-5767_skull_CT.nii.gz']);</span>
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-5767_CT_norm_robust_smallf_ng_mask.nii.gz'</span>]);
+skmaskCT = nii.img;
+</pre><h2 id="16">ct_bet_master</h2><pre class="codeinput">nii = load_untouch_nii_gz([<span class="string">'CT-MRI-5767_CT_norm_brain_mask.nii.gz'</span>]);
+betCTmsk =  nii.img;
+
+<span class="comment">% check performance with fsl_bet</span>
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-5767_MR_norm_brain.nii.gz'</span>]);
+mrBrain = nii.img;
+
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-5767_MR_norm.nii.gz'</span>]);
+mr = nii.img;
+
+<span class="comment">% brainCropBet = betCTmsk.*mr;</span>
+brainCropBet = zeros(sz);
+brainCropBet(betCTmsk==1) = mr(betCTmsk==1); <span class="comment">% it cropped out the brian from the mr</span>
+nii.img=brainCropBet;
+save_untouch_nii_gz(nii, [<span class="string">'CT-MRI-'</span> subID <span class="string">'_MR_norm_brainCTbet.nii.gz'</span>]);
+</pre><h2 id="17">Check FSL fast on ct_bet</h2><p>label 3 - white matter label 2 - grey matter label 1 - csf</p><pre class="codeinput">cmd = [<span class="string">'fast -t 1 -n 3 -H 0.1 -I 4 -l 20.0 -o  CT-MRI-'</span> subID <span class="string">'_MR_norm_brainCTbet CT-MRI-'</span> subID <span class="string">'_MR_norm_brainCTbet'</span>];
+system(cmd);
+</pre><h2 id="18">after FAST</h2><pre class="codeinput">lab = zeros(sz);
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-5767_MR_norm_brainCTbet_seg.nii.gz'</span>]);
+fst_lab = nii.img;
+volumeViewer(fst_lab)
+lab(fst_lab==1) = 1;
+lab(fst_lab==2) = 2;
+lab(fst_lab==3) = 3;
+stat = regionprops(fst_lab==2, <span class="string">'Area'</span>, <span class="string">'PixelIdxList'</span>); <span class="comment">% props of grey matter</span>
+<span class="keyword">for</span> nn = 1:length(stat) <span class="comment">% the number of grey areas found</span>
+    s = stat(nn);
+    <span class="keyword">if</span> s.Area&gt;=2  <span class="comment">% ig they are greater than 2 voxels then surely grey</span>
+        <span class="keyword">continue</span>; <span class="comment">% do nothing, next iteration</span>
+    <span class="keyword">end</span>
+    <span class="keyword">if</span> fst_lab(s.PixelIdxList+1)==2 <span class="comment">% smaller areas less than 2 if white</span>
+        lab(s.PixelIdxList) = 3; <span class="comment">% convert it in grey in new label</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+volumeViewer(lab)
+</pre><h2 id="19">Check if the previous MAS and current MAS has same/similar labels</h2><p>how many labels in the image:</p><pre class="codeinput">finalLabel = niftiread(<span class="string">'/media/banikr/DATA/emModels/MRCT_result/5639/CT-MRI-5639_MR_norm_lab_2_.nii.gz'</span>);
+numel(unique(finalLabel)) <span class="comment">% 8</span>
+batch2MASLabel = niftiread(<span class="string">'/media/banikr/DATA/emModels/test/271/Multi_Atlas/orig_target_seg.nii.gz'</span>);
+numel(unique(batch2MASLabel)) <span class="comment">% 133</span>
+batch1MASLabel = niftiread(<span class="string">'/media/banikr/DATA/emModels/TwentySubjectAll/5767/Multi_Atlas/SEG/orig_target_seg.nii.gz'</span>);
+numel(unique(batch1MASLabel)) <span class="comment">% 133</span>
+<span class="comment">% check thalamus pallidus</span>
+isThalPall = zeros(size(batch1MASLabel));
+isThalPall(batch1MASLabel==55|batch1MASLabel==56|batch1MASLabel==59|batch1MASLabel==60) = 1;
+volumeViewer(isThalPall)
+<span class="comment">% use separate labels for thalamus and pallidas. . .</span>
+</pre><h2 id="20">Regiongrowing</h2><pre class="codeinput">subID = <span class="string">'5767'</span>;
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-'</span> subID <span class="string">'_CT_norm.nii.gz'</span>]);
+ct = nii.img;
+nii = load_untouch_nii_gz([<span class="string">'CT-MRI-'</span> subID <span class="string">'_MR_norm.nii.gz'</span>]);
+mr = nii.img;
+lab = zeros(sz);
+stat = regionprops(ct&gt;2000&amp;mr&lt;10, <span class="string">'Area'</span>, <span class="string">'PixelIdxList'</span>);
+<span class="keyword">for</span> nn = 1:length(stat)
+    s = stat(nn);
+    <span class="keyword">if</span> s.Area&lt;10
+        <span class="keyword">continue</span>;
+    <span class="keyword">end</span> <span class="comment">% remove small area</span>
+    [~,ii] = max(ct(s.PixelIdxList)); <span class="comment">% find coords of max ct voxel</span>
+    [xx,yy,zz] = ind2sub(sz, s.PixelIdxList(ii));
+
+    [~, bi] = regionGrowing(ct, [xx, yy, zz], 1600, 50); <span class="comment">% region grow (1600 could be changed based on whether the result bi include skull)</span>
+    bi_ring = imdilate(bi, strel(<span class="string">'sphere'</span>, 1)) - bi; <span class="comment">% ACCRE: disk-&gt;ball</span>
+    lab(bi==1|(bi_ring==1&amp;ct&gt;1000)) = 20; <span class="comment">% |(bi_ring==1&amp;ct_grad&gt;30000)</span>
+<span class="keyword">end</span>
+volumeViewer(lab)
+</pre><h2 id="21">The main code here</h2><pre class="codeinput"><span class="comment">% load native MR</span>
+<span class="comment">% load native CT</span>
+<span class="comment">% 1. fslorient2std :</span>
+
+<span class="comment">% 2. flirt CT on MR : CTonMR, xform.mat</span>
+<span class="comment">% 3. ct_bet_python on CTonMR : brainMask (CSF, WM, GM) + also can include the</span>
+<span class="comment">%                            robust fslbet in the pipeline.</span>
+
+
+<span class="comment">% 4. Mask out brain from MR native</span>
+<span class="comment">% 5. FSL FAST</span>
+</pre><h2 id="22">check the pipeline</h2><pre class="codeinput">close <span class="string">all</span>;
+clear <span class="string">all</span>;
+addpath(<span class="string">'/home/banikr2/MATLAB/MatlabProjects/MRCTRegSeg/Codes'</span>,<span class="keyword">...</span>
+    <span class="string">'/home/banikr2/MATLAB/MatlabProjects/MRCTRegSeg/Codes/NIFTI_20100819'</span>)
+rootDir = <span class="string">'/media/banikr2/DATA/emModels/MatlabTestRun/'</span>;
+ls = dir(rootDir);
+ls = ls(3:end);
+ls.name; <span class="comment">% takes the subfolders right under rootDir</span>
+<span class="keyword">for</span> nSub = 1:length(ls) <span class="comment">%number of subjects</span>
+    subID = ls(nSub).name;
+    display([<span class="string">'Subject '</span> num2str(nSub) <span class="string">': '</span> subID]);
+    cd([rootDir,subID]);
+
+    cmd = [<span class="string">'fslreorient2std '</span>  subID <span class="string">'_CT.nii.gz '</span>  subID <span class="string">'_CT.nii.gz'</span>]; <span class="comment">%have to write twice for some strange syntax</span>
+    system(cmd)
+    cmd = [<span class="string">'fslreorient2std '</span>  subID <span class="string">'_MR.nii.gz '</span>  subID <span class="string">'_MR.nii.gz'</span>];
+    system(cmd)
+<span class="comment">%     nii = load_untouch_nii_gz([subID '_CT.nii.gz']);</span>
+<span class="comment">%     ct = nii.img; %CT file  %native CT has no variable use I guess</span>
+<span class="comment">%     nii = load_untouch_nii_gz([subID '_MR.nii.gz']);</span>
+<span class="comment">%     mr = nii.img;</span>
+<span class="comment">%     cmd =['flirt'...</span>
+<span class="comment">%     ' -in ' subID '_CT.nii.gz' ... %input or moving image: CT</span>
+<span class="comment">%     ' -ref ' subID '_MR.nii.gz'... %ref or fixed image: MR</span>
+<span class="comment">%     ' -out ' subID '_CTonMR.nii.gz'... %output native CT registered on native MR</span>
+<span class="comment">%     ' -omat ' subID '_CTonMR.mat'... % 4x4 affine transformation matrix(ascii format)</span>
+<span class="comment">%     ' -bins 256'...</span>
+<span class="comment">%     ' -cost normmi'...</span>
+<span class="comment">%     ' -searchrx -90 90'... %search angle -90 90</span>
+<span class="comment">%     ' -searchry -90 90'...</span>
+<span class="comment">%     ' -searchrz -90 90'...</span>
+<span class="comment">%     ' -dof 12'... %3 rotation, 3 translation, 3 shear, 3 scale</span>
+<span class="comment">%     ' -interp trilinear'];</span>
+<span class="comment">%     system(cmd)</span>
+<span class="comment">% %</span>
+<span class="comment">%     nii = load_untouch_nii_gz([subID '_CTonMR.nii.gz']);</span>
+<span class="comment">%     ct = nii.img; %CT file</span>
+<span class="comment">%     cmd = ['./ct_bet ' rootDir subID '/' subID '_CTonMR.nii.gz']; %creates the bet mask</span>
+<span class="comment">%     system(cmd)</span>
+<span class="comment">%</span>
+<span class="comment">%     nii = load_untouch_nii_gz([rootDir subID '/' subID '_CTonMR_brain_mask.nii.gz']);</span>
+<span class="comment">%     mask = nii.img;</span>
+<span class="comment">%     % shall the mask be finetuned by morphological operations?</span>
+<span class="comment">%     mr(mask==0) = 0;</span>
+<span class="comment">%     mr(mr&lt;0)= 0.5;</span>
+<span class="comment">%     nii.img = mr;</span>
+<span class="comment">%     save_untouch_nii_gz(nii, [subID '_MR_brain.nii.gz']); % save the brain</span>
+<span class="comment">%</span>
+<span class="comment">%     % have to perform FSL FAST in norm space of brain. We need MR to norm</span>
+<span class="comment">%     % xformation matrix for that.</span>
+
+    cmd = [<span class="string">'flirt'</span><span class="keyword">...</span>
+    <span class="string">' -in '</span> subID <span class="string">'_MR.nii.gz'</span><span class="keyword">...</span>
+    <span class="string">' -ref '</span> subID <span class="string">'_MR_norm.nii.gz '</span><span class="keyword">...</span>
+    <span class="string">' -out '</span> subID <span class="string">'_MR_TO_MR_norm.nii.gz'</span><span class="keyword">...</span>
+    <span class="string">' -omat '</span> subID <span class="string">'_MR_TO_MR_norm.mat '</span><span class="keyword">...</span>
+    <span class="string">' -bins 256'</span><span class="keyword">...</span>
+    <span class="string">' -cost normmi'</span><span class="keyword">...</span>
+    <span class="string">' -searchrx -90 90'</span><span class="keyword">...</span>
+    <span class="string">' -searchry -90 90'</span><span class="keyword">...</span>
+    <span class="string">' -searchrz -90 90'</span><span class="keyword">...</span>
+    <span class="string">' -dof 12'</span><span class="keyword">...</span>
+    <span class="string">' -interp trilinear'</span>];
+    system(cmd);
+
+<span class="comment">%     cmd = ['fast -t 1 -n 3 -H 0.1 -I 4 -l 20.0 -o -a ' subID '_MR_TO_MR_norm.mat ' subID '_MR_brain '  subID '_MR_brain'];</span>
+    cmd = [<span class="string">'fast -t 1 -n 3 -H 0.1 -I 4 -l 20.0 -o  '</span> subID <span class="string">'_MR_brain '</span>  subID <span class="string">'_MR_brain'</span>];
+    <span class="comment">% syntax: fast without .nii.gz and twice.</span>
+    <span class="comment">% generated seg file.</span>
+    system(cmd);
+    <span class="keyword">break</span>;
+<span class="keyword">end</span>
+</pre><p>cmd = ['./ct_bet ' rootDir subID '/' subID '_CTonMR.nii.gz']; system(cmd)</p><pre class="codeinput">cmd = [<span class="string">'flirt'</span><span class="keyword">...</span>
+    <span class="string">' -in '</span> subID <span class="string">'_MR.nii.gz'</span><span class="keyword">...</span>
+    <span class="string">' -ref '</span> subID <span class="string">'_MR_norm.nii.gz '</span><span class="keyword">...</span>
+    <span class="string">' -out '</span> subID <span class="string">'_MR_TO_MR_norm.nii.gz'</span><span class="keyword">...</span>
+    <span class="string">' -omat '</span> subID <span class="string">'_MR_TO_MR_norm.mat '</span><span class="keyword">...</span>
+    <span class="string">' -bins 256'</span><span class="keyword">...</span>
+    <span class="string">' -cost normmi'</span><span class="keyword">...</span>
+    <span class="string">' -searchrx -90 90'</span><span class="keyword">...</span>
+    <span class="string">' -searchry -90 90'</span><span class="keyword">...</span>
+    <span class="string">' -searchrz -90 90'</span><span class="keyword">...</span>
+    <span class="string">' -dof 12'</span><span class="keyword">...</span>
+    <span class="string">' -interp trilinear'</span>];
+    system(cmd);
+</pre><h2 id="24">region growing on MR norm head</h2><pre class="codeinput">nii = load_untouch_nii_gz(<span class="string">'5662_MR_norm.nii.gz'</span>);
+mr_norm = nii.img;
+[~, bi_r] = regionGrowing(mr_norm, [124, 180, 36], 10, 20); <span class="comment">%have to provide mr brain?</span>
+[~, bi_l] = regionGrowing(mr_norm, [51, 180, 36], 10, 20);
+eye2MRnorm = zeros(sz_norm);
+eye2MRnorm(bi_r==1|bi_l==1) = 1;
+<span class="comment">% volumeViewer(mr_norm)</span>
+nii.img = eye2MRnorm;
+save_untouch_nii_gz(nii, [<span class="string">'5662_eyeball_norm_lab.nii.gz'</span>]);
+</pre><h2 id="25">accelerated eyeball</h2><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2018b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+close all;
+clear all;
+addpath('/home/banikr2/MATLAB/MatlabProjects/MRCTRegSeg/Codes', '/media/banikr2/DATA/emModels/test', ...
+    '/media/banikr2/DATA/emModels/TwentySubjectAll/5767');
+rootDir = '/media/banikr2/DATA/emModels/test/';
+ls = dir(rootDir); ls = ls(3:end);
+ls.name;
+%%
+for nSub = 1:length(ls) %number of subjects
+    subID = ls(nSub).name;  
+    display(['Subject ' num2str(nSub) ': ' subID]);
+    cd([rootDir subID]);  
+end
+
+%%
+nii = load_untouch_nii_gz([subID '_CT.nii.gz']); ct = nii.img; %CT file
+% nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm_seg.nii.gz']); msk = nii.img; %  
+
+%%
+cmd =['flirt'...
+' -in /media/banikr/DATA/emModels/test/271_MR_bet_norm.nii.gz' ... %input or moving image: CT
+' -ref /media/banikr/DATA/emModels/test/271/271_MR.nii.gz'... %ref or fixed image: MR
+' -out /media/banikr/DATA/emModels/test/271_MR_bet2.nii.gz'... %output native CT registered on native MR
+' -omat /media/banikr/DATA/emModels/test/271_MR_bet2.mat'... % 4x4 affine transformation matrix(ascii format)
+' -bins 256'...
+' -cost normmi'...
+' -searchrx -90 90'... %search angle -90 90
+' -searchry -90 90'...
+' -searchrz -90 90'...
+' -dof 12'... %3 rotation, 3 translation, 3 shear, 3 scale
+' -interp trilinear'];
+system(cmd)
+%%
+Data = load('CT-MRI-273_MR_TO_MR_norm_0.mat','-ASCII');
+%%
+nii = load_untouch_nii_gz(['CT-MRI-' subID '_CT_norm.nii.gz']); ct = nii.img; %CT file  %%%%%%%%CT_on_MR
+nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm_seg.nii.gz']); msk = nii.img; %     
+ring = imdilate(msk==1, strel('sphere', 2))-imerode(msk==1, strel('sphere', 2)); 
+ring(ring>0&ct>200) = 2; msk(ring>0) = ring(ring>0); 
+stat = regionprops(msk==1, 'Area', 'PixelIdxList'); 
+for ii=1:length(stat)
+    if stat(ii).Area>10000; continue; end;
+    msk(stat(ii).PixelIdxList) = 2;
+end
+nii.img = msk;
+save_untouch_nii_gz(nii, ['CT-MRI-' subID '_MR_norm_seg1.nii.gz']);
+% Manual correct mask on bottom spinal part
+% Brain extraction
+nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm_seg2.nii.gz']); mask = nii.img==1; 
+nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm.nii.gz']); mr = nii.img; 
+mr(mask==0) = 0; mr(mr<0)=0.5;
+nii.img = mr;
+save_untouch_nii_gz(nii, ['CT-MRI-' subID '_MR_norm_brain.nii.gz']);   
+%% bet on norm: bet doesn't work if there is .nii file of the same .gz
+cmd = ['bet /media/banikr/DATA/emModels/TwentySubjectAll/5767/CT-MRI-5767_MR_norm.nii.gz /media/banikr/DATA/emModels/test/CT-MRI-5767_MR_norm_robust_smallf_ng.nii.gz -m -n -f 0.15 -R -S -t'];
+system(cmd)
+% if head segmentation required CT -> best result. 
+% -f 0.2259 on CT both norm and native gets the entire head. 
+% https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET/UserGuide
+% https://fsl.fmrib.ox.ac.uk/fslcourse/lectures/practicals/intro2/index.html#bet_optional
+% bet doesn't perform as the CT-MRI-273_MR_norm_seg
+% nii = load_untouch_nii_gz('/media/banikr/DATA/emModels/test/CT-MRI-5767_CT_norm_robust_smallf_ng_mask.nii.gz'); 
+% volumeViewer(nii.img)
+%% bet 
+cmd = ['bet /media/banikr/DATA/emModels/TwentySubjectAll/5767/CT-MRI-5767_MR_norm_seg.nii.gz /media/banikr/DATA/emModels/TwentySubjectAll/5767_seg_mask_bet.nii.gz -m -f 0.15 -R'];
+system(cmd)
+%% Checking fslreorient2std
+cmd = ['fslreorient2std /media/banikr/DATA/emModels/test/271_MR_bet.nii.gz /media/banikr/DATA/emModels/test/271_MR_bet.nii.gz']; %have to write twice for some strange syntax
+system(cmd)
+cmd = ['fslreorient2std /media/banikr/DATA/emModels/test/271/271_MR.nii.gz /media/banikr/DATA/emModels/test/271/271_MR.nii.gz'];
+system(cmd)
+%%
+% Correct brain mask
+% subID = '5767'
+% nii = load_untouch_nii_gz(['CT-MRI-' subID '_CT_norm.nii.gz']); ct = nii.img; % CT file  %CT_on_MR
+% nii = load_untouch_nii_gz(['CT-MRI-',subID,'_MR_norm_seg.nii.gz']); msk = nii.img; %     
+% ring = imdilate(msk==1, strel('sphere', 2))-imerode(msk==1, strel('sphere', 2)); 
+% ring(ring>0&ct>200) = 2; msk(ring>0) = ring(ring>0); 
+% stat = regionprops(msk==1, 'Area', 'PixelIdxList'); 
+% for ii=1:length(stat)
+%     if stat(ii).Area>10000; continue;
+%     end;
+%     msk(stat(ii).PixelIdxList) = 2;
+% end
+% nii.img = msk;
+% save_untouch_nii_gz(nii, ['CT-MRI-' subID '_MR_norm_seg1.nii.gz']);
+%% trial on bet
+subID = '5767'
+nii = load_untouch_nii_gz([subID '_MR_norm_bet_mask.nii.gz']); 
+mrBetMask = nii.img; 
+% 271_norm_CT.nii.gz
+nii = load_untouch_nii_gz(['CT-MRI-' subID '_CT_norm.nii.gz']); 
+ct = nii.img;
+dilatedBrain = imdilate(mrBetMask, strel('sphere', 2));
+erodedBrain = imerode(mrBetMask, strel('sphere', 2));
+brainResidue = dilatedBrain - erodedBrain; % >> is the ring
+
+brainResidue(brainResidue>0&ct>200) = 2; % >> ct > 200 is bones/skull and ring>0 is only 1; 2 means skull? 
+mrBetMask(brainResidue>0) = brainResidue(brainResidue>0); % similar as before!
+
+stat = regionprops(mrBetMask==1, 'Area', 'PixelIdxList'); 
+for ii=1:length(stat)
+    if stat(ii).Area>10000; 
+        continue; 
+    end;
+    mrBetMask(stat(ii).PixelIdxList) = 2; % >> enriching skull/bone values
+end
+% nii.img = mask012; % >>detailed skull mask012 
+%% betsurf
+
+%% bet on binary mask
+cmd = ['bet /media/banikr/DATA/emModels/test/CT-MRI-5767_brainCT.nii.gz /media/banikr/DATA/emModels/test/CT-MRI-5767_brainCT.nii.gz -m -f 0.15'];
+system(cmd)
+%% creating seg label
+subID = '5767';
+nii = load_untouch_nii_gz(['CT-MRI-' subID '_CT_norm.nii.gz']);
+ct = nii.img;
+nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm.nii.gz']);
+mr = nii.img;
+mr(mr<0)=0.5;
+sz = size(ct);
+seg012 = zeros(sz);
+seg012(ct>0 & ct<81)=1; % CSF, WM, GM, Acute blood
+seg012(mr == 0) = 0;
+seg012(ct>190) = 2;
+msk = imdilate(seg012==1, strel('sphere',2));
+% volumeViewer(seg012)
+% for i = 1:156
+% seg012 = regionfill(seg012==1);
+% end
+volumeViewer(seg012)
+% seg012 = imdilate(seg012==1, strel('sphere',2));
+% volumeViewer(seg012)
+% nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm_seg2.nii.gz']); mask = nii.img;%==1;  %% Do not have this segmentation also
+% volumeViewer(mask)
+%% all about masks
+subID = '5767';
+nii = load_untouch_nii_gz(['CT-MRI-' subID '_CT_norm.nii.gz']);
+ct = nii.img;
+sz = size(ct);
+% csf + wm + gm
+brainCT = zeros(sz);
+brainCT(ct>-1&ct<81)=1;
+volumeViewer(brainCT)
+% only csf 
+csf = zeros(sz);
+csf(ct>-1&ct<11)=1;
+volumeViewer(csf)
+csf(ct>-1&ct<11)=1;
+nii = load_untouch_nii_gz(['CT-MRI-5767_CT_norm_robust_smallf_ng_mask.nii.gz']);
+skullmask = nii.img;
+ct(skullmask==0) = 0;
+% skullCTmask(skullmask==1) = ct;
+volumeViewer(ct)
+nii.img = ct;
+% save_untouch_nii_gz(nii, ['CT-MRI-5767_skull_CT.nii.gz']);
+nii = load_untouch_nii_gz(['CT-MRI-5767_CT_norm_robust_smallf_ng_mask.nii.gz']);
+skmaskCT = nii.img;
+%% ct_bet_master
+nii = load_untouch_nii_gz(['CT-MRI-5767_CT_norm_brain_mask.nii.gz']);
+betCTmsk =  nii.img;
+
+% check performance with fsl_bet
+nii = load_untouch_nii_gz(['CT-MRI-5767_MR_norm_brain.nii.gz']);
+mrBrain = nii.img;
+
+nii = load_untouch_nii_gz(['CT-MRI-5767_MR_norm.nii.gz']);
+mr = nii.img;
+
+% brainCropBet = betCTmsk.*mr;
+brainCropBet = zeros(sz);
+brainCropBet(betCTmsk==1) = mr(betCTmsk==1); % it cropped out the brian from the mr
+nii.img=brainCropBet;
+save_untouch_nii_gz(nii, ['CT-MRI-' subID '_MR_norm_brainCTbet.nii.gz']);
+%% Check FSL fast on ct_bet
+% label 3 - white matter
+% label 2 - grey matter
+% label 1 - csf
+cmd = ['fast -t 1 -n 3 -H 0.1 -I 4 -l 20.0 -o  CT-MRI-' subID '_MR_norm_brainCTbet CT-MRI-' subID '_MR_norm_brainCTbet'];
+system(cmd);
+%% after FAST
+lab = zeros(sz);
+nii = load_untouch_nii_gz(['CT-MRI-5767_MR_norm_brainCTbet_seg.nii.gz']);
+fst_lab = nii.img; 
+volumeViewer(fst_lab)
+lab(fst_lab==1) = 1; 
+lab(fst_lab==2) = 2; 
+lab(fst_lab==3) = 3;
+stat = regionprops(fst_lab==2, 'Area', 'PixelIdxList'); % props of grey matter
+for nn = 1:length(stat) % the number of grey areas found
+    s = stat(nn);
+    if s.Area>=2  % ig they are greater than 2 voxels then surely grey 
+        continue; % do nothing, next iteration
+    end
+    if fst_lab(s.PixelIdxList+1)==2 % smaller areas less than 2 if white
+        lab(s.PixelIdxList) = 3; % convert it in grey in new label
+    end
+end
+volumeViewer(lab)
+%% Check if the previous MAS and current MAS has same/similar labels
+% how many labels in the image: 
+finalLabel = niftiread('/media/banikr/DATA/emModels/MRCT_result/5639/CT-MRI-5639_MR_norm_lab_2_.nii.gz');
+numel(unique(finalLabel)) % 8 
+batch2MASLabel = niftiread('/media/banikr/DATA/emModels/test/271/Multi_Atlas/orig_target_seg.nii.gz');
+numel(unique(batch2MASLabel)) % 133
+batch1MASLabel = niftiread('/media/banikr/DATA/emModels/TwentySubjectAll/5767/Multi_Atlas/SEG/orig_target_seg.nii.gz');
+numel(unique(batch1MASLabel)) % 133
+% check thalamus pallidus
+isThalPall = zeros(size(batch1MASLabel));
+isThalPall(batch1MASLabel==55|batch1MASLabel==56|batch1MASLabel==59|batch1MASLabel==60) = 1;
+volumeViewer(isThalPall)
+% use separate labels for thalamus and pallidas. . . 
+%% Regiongrowing
+subID = '5767';
+nii = load_untouch_nii_gz(['CT-MRI-' subID '_CT_norm.nii.gz']);
+ct = nii.img;
+nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm.nii.gz']);
+mr = nii.img;
+lab = zeros(sz);
+stat = regionprops(ct>2000&mr<10, 'Area', 'PixelIdxList');
+for nn = 1:length(stat)
+    s = stat(nn);
+    if s.Area<10
+        continue;
+    end % remove small area      
+    [~,ii] = max(ct(s.PixelIdxList)); % find coords of max ct voxel
+    [xx,yy,zz] = ind2sub(sz, s.PixelIdxList(ii));
+
+    [~, bi] = regionGrowing(ct, [xx, yy, zz], 1600, 50); % region grow (1600 could be changed based on whether the result bi include skull)
+    bi_ring = imdilate(bi, strel('sphere', 1)) - bi; % ACCRE: disk->ball
+    lab(bi==1|(bi_ring==1&ct>1000)) = 20; % |(bi_ring==1&ct_grad>30000)
+end
+volumeViewer(lab)
+%% The main code here
+
+% load native MR
+% load native CT
+% 1. fslorient2std : 
+
+% 2. flirt CT on MR : CTonMR, xform.mat
+% 3. ct_bet_python on CTonMR : brainMask (CSF, WM, GM) + also can include the
+%                            robust fslbet in the pipeline. 
+
+
+% 4. Mask out brain from MR native
+% 5. FSL FAST
+%% check the pipeline
+close all;
+clear all;
+addpath('/home/banikr2/MATLAB/MatlabProjects/MRCTRegSeg/Codes',...
+    '/home/banikr2/MATLAB/MatlabProjects/MRCTRegSeg/Codes/NIFTI_20100819')
+rootDir = '/media/banikr2/DATA/emModels/MatlabTestRun/';
+ls = dir(rootDir);
+ls = ls(3:end);
+ls.name; % takes the subfolders right under rootDir
+for nSub = 1:length(ls) %number of subjects
+    subID = ls(nSub).name;  
+    display(['Subject ' num2str(nSub) ': ' subID]);
+    cd([rootDir,subID]);
+    
+    cmd = ['fslreorient2std '  subID '_CT.nii.gz '  subID '_CT.nii.gz']; %have to write twice for some strange syntax
+    system(cmd)
+    cmd = ['fslreorient2std '  subID '_MR.nii.gz '  subID '_MR.nii.gz'];
+    system(cmd)
+%     nii = load_untouch_nii_gz([subID '_CT.nii.gz']); 
+%     ct = nii.img; %CT file  %native CT has no variable use I guess
+%     nii = load_untouch_nii_gz([subID '_MR.nii.gz']);
+%     mr = nii.img;
+%     cmd =['flirt'...
+%     ' -in ' subID '_CT.nii.gz' ... %input or moving image: CT
+%     ' -ref ' subID '_MR.nii.gz'... %ref or fixed image: MR
+%     ' -out ' subID '_CTonMR.nii.gz'... %output native CT registered on native MR
+%     ' -omat ' subID '_CTonMR.mat'... % 4x4 affine transformation matrix(ascii format)
+%     ' -bins 256'...
+%     ' -cost normmi'...
+%     ' -searchrx -90 90'... %search angle -90 90
+%     ' -searchry -90 90'...
+%     ' -searchrz -90 90'...
+%     ' -dof 12'... %3 rotation, 3 translation, 3 shear, 3 scale
+%     ' -interp trilinear'];
+%     system(cmd)
+% %     
+%     nii = load_untouch_nii_gz([subID '_CTonMR.nii.gz']); 
+%     ct = nii.img; %CT file
+%     cmd = ['./ct_bet ' rootDir subID '/' subID '_CTonMR.nii.gz']; %creates the bet mask 
+%     system(cmd)
+%     
+%     nii = load_untouch_nii_gz([rootDir subID '/' subID '_CTonMR_brain_mask.nii.gz']);
+%     mask = nii.img; 
+%     % shall the mask be finetuned by morphological operations? 
+%     mr(mask==0) = 0; 
+%     mr(mr<0)= 0.5;
+%     nii.img = mr;
+%     save_untouch_nii_gz(nii, [subID '_MR_brain.nii.gz']); % save the brain
+%     
+%     % have to perform FSL FAST in norm space of brain. We need MR to norm
+%     % xformation matrix for that. 
+    
+    cmd = ['flirt'...
+    ' -in ' subID '_MR.nii.gz'... 
+    ' -ref ' subID '_MR_norm.nii.gz '...
+    ' -out ' subID '_MR_TO_MR_norm.nii.gz'... 
+    ' -omat ' subID '_MR_TO_MR_norm.mat '...
+    ' -bins 256'...
+    ' -cost normmi'...
+    ' -searchrx -90 90'...
+    ' -searchry -90 90'...
+    ' -searchrz -90 90'...
+    ' -dof 12'...
+    ' -interp trilinear'];
+    system(cmd);
+    
+%     cmd = ['fast -t 1 -n 3 -H 0.1 -I 4 -l 20.0 -o -a ' subID '_MR_TO_MR_norm.mat ' subID '_MR_brain '  subID '_MR_brain'];
+    cmd = ['fast -t 1 -n 3 -H 0.1 -I 4 -l 20.0 -o  ' subID '_MR_brain '  subID '_MR_brain'];
+    % syntax: fast without .nii.gz and twice.
+    % generated seg file. 
+    system(cmd);
+    break;
+end
+%%
+% cmd = ['./ct_bet ' rootDir subID '/' subID '_CTonMR.nii.gz'];
+% system(cmd)
+cmd = ['flirt'...
+    ' -in ' subID '_MR.nii.gz'... 
+    ' -ref ' subID '_MR_norm.nii.gz '...
+    ' -out ' subID '_MR_TO_MR_norm.nii.gz'... 
+    ' -omat ' subID '_MR_TO_MR_norm.mat '...
+    ' -bins 256'...
+    ' -cost normmi'...
+    ' -searchrx -90 90'...
+    ' -searchry -90 90'...
+    ' -searchrz -90 90'...
+    ' -dof 12'...
+    ' -interp trilinear'];
+    system(cmd);
+%% region growing on MR norm head
+nii = load_untouch_nii_gz('5662_MR_norm.nii.gz');
+mr_norm = nii.img;
+[~, bi_r] = regionGrowing(mr_norm, [124, 180, 36], 10, 20); %have to provide mr brain? 
+[~, bi_l] = regionGrowing(mr_norm, [51, 180, 36], 10, 20);
+eye2MRnorm = zeros(sz_norm);
+eye2MRnorm(bi_r==1|bi_l==1) = 1;
+% volumeViewer(mr_norm)
+nii.img = eye2MRnorm;
+save_untouch_nii_gz(nii, ['5662_eyeball_norm_lab.nii.gz']);
+
+%% accelerated eyeball
+
+##### SOURCE END #####
+--></body></html>
