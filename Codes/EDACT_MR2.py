@@ -34,7 +34,7 @@ for fp in foldPath:
     # MRnorm = MRnormobj.get_data()
     MRint.append([MR.min(), MR.max()]) #, MRnorm.min(), MRnorm.max()])
 # print(MRint, np.shape(MRint))
-fig, ax = plt.subplots(figsize=(10, 10), dpi=150)
+fig, ax = plt.subplots(figsize=(10, 5), dpi=150)
 # ax = plt.figure().gca()
 ax.plot(np.array(subjects), np.array(CTint)[:, 0], linewidth=2.0, label="CT norm min", linestyle='--')
 ax.plot(np.array(subjects), np.array(CTint)[:, 1], linewidth=2.0, label="CT norm max", linestyle='--')
