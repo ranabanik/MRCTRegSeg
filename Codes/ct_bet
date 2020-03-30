@@ -1,0 +1,133 @@
+#!/usr/bin/env fslpython
+
+"""
+ct_bet is designed to provide better, and more reliable
+brain extractions for clinical CT images. This program
+can be used in place of FSL bet. Not all bet features are
+supported. In fact, ct_bet is very basic, but usually
+provides good results. 
+
+"""
+# builtin packages/modules
+import os
+import sys
+import subprocess
+import argparse
+
+# 3rd party packages/modules
+import nibabel as nii
+import numpy as np 
+from fsl.utils import path as fslpath
+from fsl.data.image import ALLOWED_EXTENSIONS
+
+
+FSLDIR = os.getenv("FSLDIR")
+FSLDIR_BIN = os.path.join(FSLDIR, 'bin')
+
+parser = argparse.ArgumentParser(description="brain extraction program for CT images")
+parser.add_argument('ct', type=str, help='path to the ct image')
+
+
+# module wide functions
+#----------------------
+def h2c(h_name, c_name=None, remove_bone=False):
+    """
+    convert image in houndsfield units to cormack as in https://www.ncbi.nlm.nih.gov/pubmed/22440645
+
+    h_name:          string file path of image in houndsfield units
+    c_name:          string file path to save cormack image to
+    remove_bone:    boolean, return c_str image with bone signal removed  
+
+    returns:        c_name, the path of the saved image   
+
+    
+    """
+    himg = nii.load(h_name)
+    img_data = himg.get_fdata()
+    I = np.copy(img_data)
+    mn = np.min(I)
+    mx = np.max(I)
+    if mn < -1024:
+        I[I < -1024] = -1024
+        mn = np.min(I)
+    rng = mx-mn
+    SCALE = 10
+    UNINTERESTING_DARK = 900
+    INTERESTING_MID = 200
+    I = I-mn
+    extra1 = I - UNINTERESTING_DARK
+    extra1[extra1 <= 0] = 0 # clip to zero
+    extra9 = np.copy(extra1)
+    extra9[extra9 > INTERESTING_MID] = INTERESTING_MID # clip to interesing max
+    extra9 = extra9 * (SCALE-1)
+    I = I + extra1 + extra9
+    if remove_bone:
+        I[I > 3000] = 100 # to remove bone if desired. But will also remove interesting blood related signal. and produce "zeros" holes in some areas
+    cimg = nii.Nifti1Image(I, himg.affine, himg.header)
+    cimg.header.set_slope_inter(1, 0)
+    if c_name is None:
+        c_name = fslpath.removeExt(h_name, allowedExts=ALLOWED_EXTENSIONS) + '_c.nii.gz'
+    nii.save(cimg, c_name)
+    return c_name
+
+def ct_bet(in_pth, out_pth=None, f_val=0.4, erode=True, save_units=False):
+    """
+    bet an unprocessed CT brain image. h2c must not have been run on this image previously.
+    """
+    src_pth = in_pth
+    c_in_pth = h2c(in_pth, remove_bone=True)
+
+    if out_pth is None:
+        out_pth = fslpath.removeExt(in_pth, allowedExts=ALLOWED_EXTENSIONS) + '_brain.nii.gz'
+    # initial bet to get mask
+    cmd = [
+        os.path.join(FSLDIR_BIN, 'bet'),
+        c_in_pth,
+        out_pth,
+        '-f',
+        str(f_val),
+        '-m',
+    ]
+    subprocess.run(" ".join(cmd), shell=True, check=True)
+
+    mask_pth = fslpath.removeExt(out_pth, allowedExts=ALLOWED_EXTENSIONS) + '_mask.nii.gz'
+    if erode:
+        cmd = [
+            os.path.join(FSLDIR_BIN, 'fslmaths'),
+            mask_pth,
+            '-ero',
+            mask_pth
+        ]
+        subprocess.run(" ".join(cmd), shell=True, check=True)
+    # fslmaths used to multiply original image by brain mask. make minimum value 0
+    if save_units:
+        src_pth = in_pth
+    else:
+        src_pth = h2c(in_pth, remove_bone=False)
+    cmd = [
+        os.path.join(FSLDIR_BIN, 'fslmaths'),
+        src_pth,
+        '-mul',
+        mask_pth,
+        '-thr',
+        '0',
+        out_pth
+    ]
+    subprocess.run(" ".join(cmd), shell=True, check=True)
+    os.remove(c_in_pth)
+    return out_pth
+
+# main program
+#-------------
+def _main():
+    args = parser.parse_args()
+    ct_bet(args.ct, erode=True, save_units=True)
+
+
+
+if __name__ == "__main__":
+    sys.exit(_main())
+
+
+
+
