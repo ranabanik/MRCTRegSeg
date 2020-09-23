@@ -2,7 +2,7 @@ close all;
 clear all;
 addpath('/home/banikr2/MATLAB/MatlabProjects/MRCTRegSeg/Codes', '/media/banikr2/DATA/emModels/test', ...
     '/media/banikr2/DATA/emModels/TwentySubjectAll/5767');
-rootDir = '/media/banikr2/DATA/emModels/test/';
+rootDir = '/media/banikr2/DATA/emModels/CT-MR_batch2/';
 ls = dir(rootDir); ls = ls(3:end);
 ls.name;
 %%
@@ -11,7 +11,6 @@ for nSub = 1:length(ls) %number of subjects
     display(['Subject ' num2str(nSub) ': ' subID]);
     cd([rootDir subID]);  
 end
-
 %%
 nii = load_untouch_nii_gz([subID '_CT.nii.gz']); ct = nii.img; %CT file
 % nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm_seg.nii.gz']); msk = nii.img; %  
@@ -321,9 +320,9 @@ end
 % cmd = ['./ct_bet ' rootDir subID '/' subID '_CTonMR.nii.gz'];
 % system(cmd)
 cmd = ['flirt'...
-    ' -in ' subID '_MR.nii.gz'... 
+    ' -in ' subID '_MR2std.nii.gz'... 
     ' -ref ' rootDir 'average305_t1_tal_lin.nii'...%subID '_MR_norm.nii.gz '...
-    ' -out ' subID '_MR_2_MNI.nii.gz'... 
+    ' -out ' subID '_MRstd_2_MNI.nii.gz'... 
     ' -omat ' subID '_MR_2_MNI.mat '...
     ' -bins 256'...
     ' -cost normmi'...
@@ -332,15 +331,17 @@ cmd = ['flirt'...
     ' -searchrz -90 90'...
     ' -dof 12'...
     ' -interp trilinear'];
-    system(cmd);
+system(cmd);
 %% region growing on MR norm head
-nii = load_untouch_nii_gz('309_MR_norm.nii.gz');
+nii = load_untouch_nii_gz('268_MRstd_2_MNI.nii.gz');
 mr_norm = nii.img;
 [~, bi_r] = regionGrowing(mr_norm, [124, 176, 25], 10, 20); %have to provide mr brain? 
 [~, bi_l] = regionGrowing(mr_norm, [55, 175, 25], 10, 20);
 eye2MRnorm = zeros(size(mr_norm));
 eye2MRnorm(bi_r==1|bi_l==1) = 1;
-% volumeViewer(mr_norm)
 nii.img = eye2MRnorm;
-save_untouch_nii_gz(nii, ['309_eyeball_norm_lab.nii.gz']);
+save_untouch_nii_gz(nii, '268_eyeball_norm_lab.nii.gz');
 %% accelerated eyeball
+
+%% masking fat using CT
+CT = niftiread(rootDir,'309/');

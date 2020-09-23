@@ -113,8 +113,8 @@ for nSub = 1:length(ls) %number of subjects
     nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm.nii.gz']); mr = nii.img;    
     [gx,gy,gz] = imgradientxyz(mr,'prewitt'); mr_grad = sqrt(gx.^2+gy.^2+gz.^2); 
     nii.img = mr_grad; save_untouch_nii_gz(nii, ['CT-MRI-' subID '_MR_norm_gradmag.nii.gz']); % ACCRE only
-%     nii = load_untouch_nii_gz(['CT-MRI-' subID '_CT_norm_gradmag.nii.gz']); ct_grad = nii.img;
-%     nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm_gradmag.nii.gz']); mr_grad = nii.img;
+    % nii = load_untouch_nii_gz(['CT-MRI-' subID '_CT_norm_gradmag.nii.gz']); ct_grad = nii.img;
+    % nii = load_untouch_nii_gz(['CT-MRI-' subID '_MR_norm_gradmag.nii.gz']); mr_grad = nii.img;
     sz = size(mr);
 
     lab = zeros(sz);
@@ -153,12 +153,12 @@ for nSub = 1:length(ls) %number of subjects
     for nn=1:length(stat)
         s = stat(nn);
         if s.Area<1000, continue; end; % remove small area
-        bi = zeros(sz); bi(s.PixelIdxList) = 1;
+        bi = zeros(sz); 
+        bi(s.PixelIdxList) = 1;
         bi = imfill(bi,'holes'); % fill holes
         %             for sl = (sz(3)/2):sz(3) % check every axial slice to remove electrode
         %                 ss = regionprops(bi(:,:,sl), 'Area', 'PixelIdxList');
-        %                 if length(ss)==1, continue; end;
-        %
+        %                 if length(ss)==1, continue; end;        
         %             end
         bi = imopen(bi, strel('sphere', 1)); 
         bi_ring = bi - imerode(bi, strel('sphere',1)); bi(bi_ring>0&mr>50) = 0;
@@ -172,9 +172,12 @@ for nSub = 1:length(ls) %number of subjects
     stat = regionprops(bi, 'Area', 'PixelIdxList');
     for nn=1:length(stat)
         s = stat(nn);
-        if s.Area<500, continue; end; % remove small objects
+        if s.Area<500 
+            continue; 
+        end % remove small objects
         bi = zeros(sz); bi(s.PixelIdxList) = 1;
-        bi_ring = imdilate(bi, strel('sphere', 1)) - bi; bi(bi_ring==1&mr>40) = 1; % fill gaps
+        bi_ring = imdilate(bi, strel('sphere', 1)) - bi; 
+        bi(bi_ring==1&mr>40) = 1; % fill gaps
         lab(bi==1) = 8;
     end
     % label muscle & skin: mr=[30,100]
@@ -190,7 +193,6 @@ for nSub = 1:length(ls) %number of subjects
 %     bi = ct_lab ==4; bi = imclose(bi, strel('sphere', 3)); ct_lab(bi>0) = 4;
 %     ct_lab(ct>-20   & ct<=300) = 6; % white/gray matter/csf/musle
 %     ct_lab(ct>-150 & ct<=-20) = 8; % fat
-%     ct_lab(ct<=-150) = 0; % air   
-
+%     ct_lab(ct<=-150) = 0; % air
 end
 cd('/scratch/gaoy3/CT-MR/');
